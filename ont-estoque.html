@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ONT Manager — Controle de Estoque ISP</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-deep: #040810;
+  --bg-card: #080f1e;
+  --bg-panel: #0c1529;
+  --bg-hover: #111d35;
+  --border: #1a2d4a;
+  --border-bright: #1e3a5f;
+  --accent: #00c2ff;
+  --accent-dim: #0077a8;
+  --accent-glow: rgba(0,194,255,0.15);
+  --green: #00e5a0;
+  --green-dim: rgba(0,229,160,0.12);
+  --red: #ff3b5c;
+  --red-dim: rgba(255,59,92,0.12);
+  --yellow: #ffb800;
+  --yellow-dim: rgba(255,184,0,0.12);
+  --purple: #a855f7;
+  --purple-dim: rgba(168,85,247,0.12);
+  --text: #d0e4f7;
+  --text-dim: #5a7a99;
+  --text-bright: #ffffff;
+  --mono: 'Share Tech Mono', monospace;
+  --sans: 'Exo 2', sans-serif;
+  --radius: 8px;
+  --sidebar-w: 220px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg-deep);color:var(--text);font-family:var(--sans);min-height:100vh;overflow-x:hidden;}
+
+/* SCANLINE EFFECT */
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none;z-index:9999;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:32px;}
+.login-box{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;padding:48px 40px;width:380px;position:relative;overflow:hidden;}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.login-logo{text-align:center;margin-bottom:32px;}
+.login-logo .logo-icon{font-size:48px;display:block;margin-bottom:12px;}
+.login-logo h1{font-size:22px;font-weight:900;color:var(--text-bright);letter-spacing:2px;font-family:var(--mono);}
+.login-logo p{font-size:11px;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
+.login-field{margin-bottom:20px;}
+.login-field label{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;font-family:var(--mono);}
+.login-field input{width:100%;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;color:var(--text-bright);font-family:var(--mono);font-size:14px;transition:border-color 0.2s;}
+.login-field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow);}
+.login-err{color:var(--red);font-size:12px;text-align:center;min-height:18px;font-family:var(--mono);}
+.btn-login{width:100%;padding:14px;background:var(--accent);color:#000;font-weight:700;font-size:14px;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--sans);letter-spacing:1px;transition:all 0.2s;margin-top:8px;}
+.btn-login:hover{background:#33cfff;box-shadow:0 0 20px rgba(0,194,255,0.4);}
+
+/* LAYOUT */
+#app{display:none;min-height:100vh;}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:var(--bg-card);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow-y:auto;}
+.sidebar-logo{padding:24px 20px 20px;border-bottom:1px solid var(--border);}
+.sidebar-logo .s-icon{font-size:28px;}
+.sidebar-logo h2{font-family:var(--mono);font-size:16px;color:var(--text-bright);letter-spacing:1px;margin-top:6px;}
+.sidebar-logo p{font-size:10px;color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;}
+.sidebar-nav{flex:1;padding:16px 0;}
+.nav-section{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--text-dim);padding:16px 20px 6px;font-family:var(--mono);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;transition:all 0.15s;font-size:13px;color:var(--text-dim);border-left:3px solid transparent;position:relative;}
+.nav-item:hover{background:var(--bg-hover);color:var(--text);}
+.nav-item.active{background:var(--accent-glow);color:var(--accent);border-left-color:var(--accent);}
+.nav-item .ni{font-size:16px;width:20px;text-align:center;}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--border);}
+.sidebar-footer .user-info{font-size:11px;color:var(--text-dim);font-family:var(--mono);}
+.sidebar-footer .user-info strong{color:var(--accent);display:block;margin-bottom:2px;}
+.btn-logout{width:100%;margin-top:10px;padding:8px;background:transparent;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);font-size:12px;cursor:pointer;transition:all 0.2s;font-family:var(--mono);}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+.main-content{margin-left:var(--sidebar-w);padding:28px;min-height:100vh;}
+.page{display:none;}
+.page.active{display:block;animation:fadeIn 0.25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+.page-header{margin-bottom:28px;}
+.page-header h1{font-size:24px;font-weight:900;color:var(--text-bright);letter-spacing:1px;}
+.page-header p{font-size:13px;color:var(--text-dim);margin-top:4px;}
+
+/* CARDS */
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px 18px;position:relative;overflow:hidden;transition:transform 0.2s,border-color 0.2s;cursor:default;}
+.stat-card:hover{transform:translateY(-2px);border-color:var(--border-bright);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat-card.c-total::before{background:var(--accent);}
+.stat-card.c-disp::before{background:var(--green);}
+.stat-card.c-inst::before{background:var(--purple);}
+.stat-card.c-def::before{background:var(--red);}
+.stat-card.c-res::before{background:var(--yellow);}
+.stat-card.c-baixa::before{background:var(--text-dim);}
+.stat-card.c-mod::before{background:var(--accent);}
+.stat-card.c-tec::before{background:var(--green);}
+.stat-card-num{font-family:var(--mono);font-size:36px;font-weight:700;line-height:1;margin-bottom:6px;}
+.stat-card.c-total .stat-card-num{color:var(--accent);}
+.stat-card.c-disp .stat-card-num{color:var(--green);}
+.stat-card.c-inst .stat-card-num{color:var(--purple);}
+.stat-card.c-def .stat-card-num{color:var(--red);}
+.stat-card.c-res .stat-card-num{color:var(--yellow);}
+.stat-card.c-baixa .stat-card-num{color:var(--text-dim);}
+.stat-card.c-mod .stat-card-num{color:var(--accent);}
+.stat-card.c-tec .stat-card-num{color:var(--green);}
+.stat-card-label{font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;}
+.stat-card-icon{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:28px;opacity:0.12;}
+
+/* PANELS */
+.panel{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:20px;}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;}
+.panel-title{font-size:14px;font-weight:700;color:var(--text-bright);letter-spacing:1px;text-transform:uppercase;font-family:var(--mono);}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group.full{grid-column:1/-1;}
+.form-group label{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim);font-family:var(--mono);}
+.form-group input,.form-group select,.form-group textarea{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;color:var(--text-bright);font-family:var(--mono);font-size:13px;transition:border-color 0.2s;width:100%;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow);}
+.form-group select option{background:var(--bg-panel);}
+.form-group textarea{resize:vertical;min-height:80px;}
+
+/* BUTTONS */
+.btn{padding:9px 18px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all 0.2s;font-family:var(--sans);letter-spacing:0.5px;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--accent);color:#000;}
+.btn-primary:hover{background:#33cfff;box-shadow:0 0 16px rgba(0,194,255,0.35);}
+.btn-success{background:var(--green);color:#000;}
+.btn-success:hover{background:#00fdb5;box-shadow:0 0 16px rgba(0,229,160,0.35);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger:hover{box-shadow:0 0 16px rgba(255,59,92,0.35);}
+.btn-warn{background:var(--yellow);color:#000;}
+.btn-warn:hover{box-shadow:0 0 16px rgba(255,184,0,0.35);}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:5px 12px;font-size:11px;}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{padding:10px 14px;text-align:left;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border);font-family:var(--mono);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;}
+tbody tr:hover{background:var(--bg-hover);}
+tbody td{padding:11px 14px;color:var(--text);font-family:var(--mono);font-size:12px;white-space:nowrap;}
+tbody td.td-actions{display:flex;gap:6px;flex-wrap:nowrap;}
+.empty-row td{text-align:center;padding:40px;color:var(--text-dim);font-size:13px;}
+
+/* BADGES */
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.5px;font-family:var(--mono);}
+.badge-disp{background:var(--green-dim);color:var(--green);}
+.badge-inst{background:var(--purple-dim);color:var(--purple);}
+.badge-def{background:var(--red-dim);color:var(--red);}
+.badge-res{background:var(--yellow-dim);color:var(--yellow);}
+.badge-baixa{background:rgba(90,122,153,0.15);color:var(--text-dim);}
+.badge-gpon{background:rgba(0,194,255,0.1);color:var(--accent);}
+
+/* SEARCH */
+.search-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.search-input{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;color:var(--text-bright);font-family:var(--mono);font-size:13px;flex:1;min-width:200px;transition:border-color 0.2s;}
+.search-input:focus{outline:none;border-color:var(--accent);}
+.search-input::placeholder{color:var(--text-dim);}
+
+/* PAGINATION */
+.pagination{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
+.page-btn{padding:6px 14px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-dim);cursor:pointer;font-family:var(--mono);font-size:12px;transition:all 0.15s;}
+.page-btn:hover,.page-btn.active{background:var(--accent-glow);border-color:var(--accent);color:var(--accent);}
+.page-info{font-size:12px;color:var(--text-dim);font-family:var(--mono);}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:16px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;position:relative;}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);}
+.modal-header{padding:24px 28px 0;display:flex;justify-content:space-between;align-items:center;}
+.modal-header h2{font-size:18px;font-weight:700;color:var(--text-bright);}
+.modal-close{background:none;border:none;color:var(--text-dim);font-size:22px;cursor:pointer;padding:4px;line-height:1;transition:color 0.2s;}
+.modal-close:hover{color:var(--red);}
+.modal-body{padding:24px 28px;}
+.modal-footer{padding:0 28px 24px;display:flex;justify-content:flex-end;gap:10px;}
+
+/* TOAST */
+#toast-container{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:9000;}
+.toast{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:10px;padding:14px 20px;font-size:13px;font-family:var(--mono);min-width:260px;animation:toastIn 0.3s ease;display:flex;align-items:center;gap:10px;}
+.toast.success{border-left:3px solid var(--green);color:var(--green);}
+.toast.error{border-left:3px solid var(--red);color:var(--red);}
+.toast.info{border-left:3px solid var(--accent);color:var(--accent);}
+.toast.warn{border-left:3px solid var(--yellow);color:var(--yellow);}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:none;}}
+
+/* CONFIRM */
+#confirm-bg{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:800;display:none;align-items:center;justify-content:center;}
+#confirm-bg.open{display:flex;}
+.confirm-box{background:var(--bg-card);border:1px solid var(--border-bright);border-radius:14px;padding:32px;max-width:380px;text-align:center;}
+.confirm-box h3{color:var(--text-bright);font-size:18px;margin-bottom:10px;}
+.confirm-box p{color:var(--text-dim);font-size:13px;margin-bottom:24px;}
+.confirm-actions{display:flex;gap:12px;justify-content:center;}
+
+/* MOVIMENTACOES */
+.mov-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;display:flex;align-items:flex-start;gap:14px;}
+.mov-icon{font-size:22px;margin-top:2px;}
+.mov-info{flex:1;}
+.mov-info strong{display:block;font-size:13px;color:var(--text-bright);margin-bottom:4px;}
+.mov-info span{font-size:11px;color:var(--text-dim);font-family:var(--mono);}
+.mov-date{font-size:11px;color:var(--text-dim);font-family:var(--mono);white-space:nowrap;}
+
+/* MODELO COUNTER */
+.modelo-count{display:inline-flex;align-items:center;gap:4px;background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:20px;padding:2px 10px;font-family:var(--mono);font-size:12px;color:var(--accent);}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);transition:transform 0.3s;}
+  .sidebar.open{transform:none;}
+  .main-content{margin-left:0;padding:16px;}
+  .cards-grid{grid-template-columns:repeat(2,1fr);}
+  .form-grid{grid-template-columns:1fr;}
+  #menu-toggle{display:flex!important;}
+}
+#menu-toggle{display:none;position:fixed;top:12px;left:12px;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:18px;cursor:pointer;color:var(--text);}
+
+/* CHART BARS */
+.chart-bar-wrap{display:flex;flex-direction:column;gap:10px;}
+.chart-bar-row{display:flex;align-items:center;gap:12px;}
+.chart-bar-label{font-size:11px;font-family:var(--mono);color:var(--text-dim);width:100px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.chart-bar-track{flex:1;height:10px;background:var(--bg-panel);border-radius:6px;overflow:hidden;}
+.chart-bar-fill{height:100%;border-radius:6px;transition:width 0.6s ease;}
+.chart-bar-val{font-size:11px;font-family:var(--mono);color:var(--text-dim);width:30px;}
+
+/* IMPORT area */
+.drop-zone{border:2px dashed var(--border-bright);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all 0.2s;color:var(--text-dim);}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}
+.drop-zone p{font-size:14px;margin-top:10px;}
+.drop-zone .dz-icon{font-size:36px;}
+
+/* TABS */
+.tabs{display:flex;gap:4px;background:var(--bg-panel);border-radius:var(--radius);padding:4px;margin-bottom:20px;flex-wrap:wrap;}
+.tab{padding:8px 18px;border-radius:6px;font-size:12px;cursor:pointer;font-family:var(--mono);color:var(--text-dim);transition:all 0.2s;letter-spacing:0.5px;}
+.tab.active{background:var(--accent);color:#000;font-weight:700;}
+.tab-content{display:none;}
+.tab-content.active{display:block;}
+
+/* HIGHLIGHT */
+.hl{color:var(--accent);font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="logo-icon">📡</span>
+      <h1>ONT MANAGER</h1>
+      <p>Controle de Estoque ISP</p>
+    </div>
+    <div class="login-field">
+      <label>Usuário</label>
+      <input type="text" id="login-user" placeholder="admin" autocomplete="off">
+    </div>
+    <div class="login-field">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-err" id="login-err"></div>
+    <button class="btn-login" onclick="doLogin()">ENTRAR</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <button id="menu-toggle" onclick="toggleSidebar()">☰</button>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="s-icon">📡</div>
+      <h2>ONT MANAGER</h2>
+      <p>ISP Stock Control</p>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">PRINCIPAL</div>
+      <div class="nav-item active" onclick="navTo('dashboard')"><span class="ni">⬛</span> Dashboard</div>
+      <div class="nav-item" onclick="navTo('onts')"><span class="ni">📶</span> ONTs</div>
+      <div class="nav-section">CADASTROS</div>
+      <div class="nav-item" onclick="navTo('modelos')"><span class="ni">📦</span> Modelos</div>
+      <div class="nav-item" onclick="navTo('tecnicos')"><span class="ni">👷</span> Técnicos</div>
+      <div class="nav-section">OPERAÇÕES</div>
+      <div class="nav-item" onclick="navTo('movimentacoes')"><span class="ni">🔄</span> Movimentações</div>
+      <div class="nav-item" onclick="navTo('relatorios')"><span class="ni">📊</span> Relatórios</div>
+      <div class="nav-section">DADOS</div>
+      <div class="nav-item" onclick="navTo('importar')"><span class="ni">📤</span> Importar/Exportar</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info"><strong id="sidebar-user">admin</strong>Administrador</div>
+      <button class="btn-logout" onclick="doLogout()">⏻ Sair do Sistema</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>📊 Dashboard</h1>
+        <p>Visão geral do estoque de ONTs</p>
+      </div>
+      <div class="cards-grid" id="dash-cards"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex-wrap:wrap;" id="dash-charts-wrap">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">📶 ONTs por Status</span></div>
+          <div id="chart-status" class="chart-bar-wrap"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">📦 ONTs por Modelo (Top 8)</span></div>
+          <div id="chart-modelos" class="chart-bar-wrap"></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:20px;">
+        <div class="panel-header"><span class="panel-title">🕐 Últimas Movimentações</span></div>
+        <div id="dash-movs"></div>
+      </div>
+    </div>
+
+    <!-- ONTs -->
+    <div class="page" id="page-onts">
+      <div class="page-header">
+        <h1>📶 Estoque de ONTs</h1>
+        <p>Cadastre e gerencie unidades individuais de ONT</p>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">➕ Nova ONT</span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleForm('ont-form')">Abrir/Fechar</button>
+        </div>
+        <div id="ont-form" style="display:none;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Categoria</label>
+              <select id="ont-cat">
+                <option value="">— Selecione —</option>
+                <option>ONU GPON</option><option>ONU EPON</option><option>Roteador</option><option>ONU Wi-Fi</option><option>Outros</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Marca</label>
+              <input id="ont-marca" placeholder="Ex: Huawei, ZTE, Fiberhome">
+            </div>
+            <div class="form-group">
+              <label>Modelo</label>
+              <select id="ont-modelo"><option value="">— Selecione o modelo —</option></select>
+            </div>
+            <div class="form-group">
+              <label>Nº de Série</label>
+              <input id="ont-serial" placeholder="Ex: HW123456789">
+            </div>
+            <div class="form-group">
+              <label>GPON SN</label>
+              <input id="ont-gpon" placeholder="Ex: ZTEG12345678">
+            </div>
+            <div class="form-group">
+              <label>MAC Address</label>
+              <input id="ont-mac" placeholder="Ex: AA:BB:CC:DD:EE:FF">
+            </div>
+            <div class="form-group">
+              <label>Data de Entrada</label>
+              <input type="date" id="ont-data">
+            </div>
+            <div class="form-group">
+              <label>Fornecedor</label>
+              <input id="ont-fornecedor" placeholder="Nome do fornecedor">
+            </div>
+            <div class="form-group full">
+              <label>Observações</label>
+              <textarea id="ont-obs" placeholder="Observações adicionais..."></textarea>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px;">
+            <button class="btn btn-primary" onclick="saveOnt()">💾 Salvar ONT</button>
+            <button class="btn btn-ghost" onclick="clearOntForm()">✖ Limpar</button>
+          </div>
+          <input type="hidden" id="ont-edit-id">
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 Lista de ONTs</span>
+          <div class="search-bar">
+            <input class="search-input" id="ont-search" placeholder="🔍 GPON, MAC, Serial, Modelo..." oninput="renderOnts()">
+            <select class="search-input" style="flex:none;width:auto;" id="ont-filter-status" onchange="renderOnts()">
+              <option value="">Todos os Status</option>
+              <option>Disponível</option><option>Instalada</option><option>Defeituosa</option><option>Reservada</option><option>Baixada</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Categoria</th><th>Marca</th><th>Modelo</th><th>GPON SN</th><th>MAC</th><th>Serial</th><th>Status</th><th>Entrada</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="ont-tbody"></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="ont-pagination"></div>
+      </div>
+    </div>
+
+    <!-- MODELOS -->
+    <div class="page" id="page-modelos">
+      <div class="page-header">
+        <h1>📦 Modelos de ONT</h1>
+        <p>Gerencie os modelos e veja o contador automático de unidades</p>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">➕ Novo Modelo</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Categoria</label>
+            <select id="mod-cat">
+              <option value="">— Selecione —</option>
+              <option>ONU GPON</option><option>ONU EPON</option><option>Roteador</option><option>ONU Wi-Fi</option><option>Outros</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Marca</label>
+            <input id="mod-marca" placeholder="Ex: Huawei">
+          </div>
+          <div class="form-group">
+            <label>Modelo</label>
+            <input id="mod-nome" placeholder="Ex: HG8145V5">
+          </div>
+          <div class="form-group full">
+            <label>Descrição</label>
+            <input id="mod-desc" placeholder="Descrição ou observações do modelo">
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="saveModelo()">💾 Salvar Modelo</button>
+          <button class="btn btn-ghost" onclick="clearModeloForm()">✖ Limpar</button>
+        </div>
+        <input type="hidden" id="mod-edit-id">
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 Modelos Cadastrados</span>
+          <input class="search-input" style="max-width:260px;" id="mod-search" placeholder="🔍 Buscar modelo..." oninput="renderModelos()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Categoria</th><th>Marca</th><th>Modelo</th><th>Descrição</th><th>Unidades</th><th>Ações</th></tr></thead>
+            <tbody id="mod-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TÉCNICOS -->
+    <div class="page" id="page-tecnicos">
+      <div class="page-header">
+        <h1>👷 Técnicos</h1>
+        <p>Cadastre os técnicos responsáveis pelas instalações</p>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">➕ Novo Técnico</span></div>
+        <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+          <div class="form-group" style="flex:1;min-width:220px;">
+            <label>Nome do Técnico</label>
+            <input id="tec-nome" placeholder="Nome completo do técnico" onkeydown="if(event.key==='Enter')saveTecnico()">
+          </div>
+          <button class="btn btn-primary" onclick="saveTecnico()">💾 Salvar</button>
+          <button class="btn btn-ghost" onclick="clearTecForm()">✖</button>
+        </div>
+        <input type="hidden" id="tec-edit-id">
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 Técnicos Cadastrados</span>
+          <input class="search-input" style="max-width:260px;" id="tec-search" placeholder="🔍 Buscar técnico..." oninput="renderTecnicos()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Nome</th><th>ONTs Atribuídas</th><th>Ações</th></tr></thead>
+            <tbody id="tec-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOVIMENTAÇÕES -->
+    <div class="page" id="page-movimentacoes">
+      <div class="page-header">
+        <h1>🔄 Movimentações de Estoque</h1>
+        <p>Registre saídas, instalações, devoluções e histórico completo</p>
+      </div>
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('mov','registro')">➕ Registrar</div>
+        <div class="tab" onclick="switchTab('mov','historico')">📋 Histórico</div>
+      </div>
+      <div class="tab-content active" id="mov-tab-registro">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Registrar Movimentação</span></div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Tipo de Movimentação</label>
+              <select id="mov-tipo" onchange="updateMovForm()">
+                <option value="">— Selecione —</option>
+                <option value="saida">📤 Saída para Técnico</option>
+                <option value="instalacao">🏠 Instalação no Cliente</option>
+                <option value="devolucao">📥 Devolução ao Estoque</option>
+                <option value="status">🔧 Alteração de Status</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>ONT (GPON / Serial / MAC)</label>
+              <input id="mov-ont-search" placeholder="Digite para buscar ONT..." oninput="searchOntForMov()" autocomplete="off">
+              <div id="mov-ont-results" style="position:relative;"></div>
+              <input type="hidden" id="mov-ont-id">
+            </div>
+            <div class="form-group" id="mov-field-tecnico" style="display:none;">
+              <label>Técnico</label>
+              <select id="mov-tecnico"><option value="">— Selecione —</option></select>
+            </div>
+            <div class="form-group" id="mov-field-cliente" style="display:none;">
+              <label>Nome do Cliente</label>
+              <input id="mov-cliente" placeholder="Nome completo">
+            </div>
+            <div class="form-group" id="mov-field-cpf" style="display:none;">
+              <label>CPF</label>
+              <input id="mov-cpf" placeholder="000.000.000-00">
+            </div>
+            <div class="form-group" id="mov-field-endereco" style="display:none;">
+              <label>Endereço</label>
+              <input id="mov-endereco" placeholder="Rua, número, bairro, cidade">
+            </div>
+            <div class="form-group" id="mov-field-status-novo" style="display:none;">
+              <label>Novo Status</label>
+              <select id="mov-status-novo">
+                <option>Disponível</option><option>Instalada</option><option>Defeituosa</option><option>Reservada</option><option>Baixada</option>
+              </select>
+            </div>
+            <div class="form-group" id="mov-field-motivo" style="display:none;">
+              <label>Motivo da Devolução</label>
+              <input id="mov-motivo" placeholder="Ex: Troca de equipamento, defeito...">
+            </div>
+            <div class="form-group" id="mov-field-status-dev" style="display:none;">
+              <label>Estado ao Devolver</label>
+              <select id="mov-status-dev"><option>Disponível</option><option>Defeituosa</option></select>
+            </div>
+            <div class="form-group">
+              <label>Data</label>
+              <input type="date" id="mov-data">
+            </div>
+            <div class="form-group full">
+              <label>Observações</label>
+              <textarea id="mov-obs" placeholder="Observações adicionais..."></textarea>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <button class="btn btn-primary" onclick="saveMovimentacao()">💾 Registrar Movimentação</button>
+          </div>
+        </div>
+        <div class="panel" id="mov-ont-preview" style="display:none;">
+          <div class="panel-header"><span class="panel-title">ONT Selecionada</span></div>
+          <div id="mov-ont-info"></div>
+        </div>
+      </div>
+      <div class="tab-content" id="mov-tab-historico">
+        <div class="panel">
+          <div class="panel-header">
+            <span class="panel-title">Histórico Completo</span>
+            <div class="search-bar">
+              <input class="search-input" id="mov-hist-search" placeholder="🔍 Buscar..." oninput="renderHistorico()">
+              <select class="search-input" style="flex:none;width:auto;" id="mov-hist-tipo" onchange="renderHistorico()">
+                <option value="">Todos os tipos</option>
+                <option value="saida">Saída</option>
+                <option value="instalacao">Instalação</option>
+                <option value="devolucao">Devolução</option>
+                <option value="status">Alteração de Status</option>
+              </select>
+            </div>
+          </div>
+          <div id="historico-list"></div>
+          <div class="pagination" id="hist-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATÓRIOS -->
+    <div class="page" id="page-relatorios">
+      <div class="page-header">
+        <h1>📊 Relatórios</h1>
+        <p>Gere relatórios detalhados do estoque</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:20px;">
+        <div class="panel" style="cursor:pointer;" onclick="gerarRelatorio('disponiveis')">
+          <div style="font-size:28px;">✅</div>
+          <div style="font-size:16px;font-weight:700;color:var(--green);margin:8px 0 4px;">ONTs Disponíveis</div>
+          <div style="font-size:12px;color:var(--text-dim);">Lista completa de ONTs no estoque prontas para uso</div>
+        </div>
+        <div class="panel" style="cursor:pointer;" onclick="gerarRelatorio('instaladas')">
+          <div style="font-size:28px;">📶</div>
+          <div style="font-size:16px;font-weight:700;color:var(--purple);margin:8px 0 4px;">ONTs Instaladas</div>
+          <div style="font-size:12px;color:var(--text-dim);">ONTs em uso nos clientes com histórico</div>
+        </div>
+        <div class="panel" style="cursor:pointer;" onclick="gerarRelatorio('defeituosas')">
+          <div style="font-size:28px;">🔧</div>
+          <div style="font-size:16px;font-weight:700;color:var(--red);margin:8px 0 4px;">ONTs Defeituosas</div>
+          <div style="font-size:12px;color:var(--text-dim);">Equipamentos com defeito para análise</div>
+        </div>
+        <div class="panel" style="cursor:pointer;" onclick="gerarRelatorio('modelos')">
+          <div style="font-size:28px;">📦</div>
+          <div style="font-size:16px;font-weight:700;color:var(--accent);margin:8px 0 4px;">ONTs por Modelo</div>
+          <div style="font-size:12px;color:var(--text-dim);">Contagem de unidades por modelo cadastrado</div>
+        </div>
+        <div class="panel" style="cursor:pointer;" onclick="gerarRelatorio('tecnicos')">
+          <div style="font-size:28px;">👷</div>
+          <div style="font-size:16px;font-weight:700;color:var(--yellow);margin:8px 0 4px;">ONTs por Técnico</div>
+          <div style="font-size:12px;color:var(--text-dim);">ONTs atribuídas a cada técnico</div>
+        </div>
+      </div>
+      <div class="panel" id="relatorio-output" style="display:none;">
+        <div class="panel-header">
+          <span class="panel-title" id="rel-title">Relatório</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost btn-sm" onclick="exportRelatorioCSV()">📥 CSV</button>
+            <button class="btn btn-ghost btn-sm" onclick="window.print()">🖨️ Imprimir</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table><thead id="rel-thead"></thead><tbody id="rel-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <!-- IMPORTAR/EXPORTAR -->
+    <div class="page" id="page-importar">
+      <div class="page-header">
+        <h1>📤 Importar / Exportar</h1>
+        <p>Importe ONTs em massa ou faça backup dos dados</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;flex-wrap:wrap;">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">📥 Importar CSV</span></div>
+          <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px;">O arquivo CSV deve ter as colunas: <span class="hl">Categoria, Marca, Modelo, GPON, MAC, Serial</span></p>
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()" ondragover="dz_over(event)" ondragleave="dz_leave(event)" ondrop="dz_drop(event)">
+            <div class="dz-icon">📁</div>
+            <p>Clique ou arraste o arquivo CSV aqui</p>
+          </div>
+          <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importCSV(event)">
+          <div id="import-result" style="margin-top:16px;font-size:13px;font-family:var(--mono);"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">📤 Exportar Dados</span></div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <button class="btn btn-primary" onclick="exportCSV()">📥 Exportar ONTs — CSV</button>
+            <button class="btn btn-success" onclick="exportJSON()">💾 Backup Completo — JSON</button>
+            <button class="btn btn-ghost" onclick="document.getElementById('json-restore').click()">📂 Restaurar Backup JSON</button>
+            <input type="file" id="json-restore" accept=".json" style="display:none" onchange="restoreJSON(event)">
+          </div>
+          <div style="margin-top:20px;padding:16px;background:var(--bg-panel);border-radius:8px;">
+            <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;letter-spacing:1px;text-transform:uppercase;font-family:var(--mono);">Estatísticas do Banco</div>
+            <div id="db-stats" style="font-size:12px;font-family:var(--mono);color:var(--text-dim);line-height:1.8;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-content -->
+</div><!-- /app -->
+
+<!-- MODAL STATUS -->
+<div class="modal-bg" id="modal-status">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Alterar Status da ONT</h2>
+      <button class="modal-close" onclick="closeModal('modal-status')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-status-info" style="margin-bottom:20px;padding:14px;background:var(--bg-panel);border-radius:8px;font-family:var(--mono);font-size:12px;"></div>
+      <div class="form-group">
+        <label>Novo Status</label>
+        <select id="modal-novo-status">
+          <option>Disponível</option><option>Instalada</option><option>Defeituosa</option><option>Reservada</option><option>Baixada</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label>Observação</label>
+        <textarea id="modal-status-obs" placeholder="Motivo da alteração..." style="min-height:60px;"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-status')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmStatus()">✅ Confirmar</button>
+    </div>
+    <input type="hidden" id="modal-status-id">
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div id="confirm-bg">
+  <div class="confirm-box">
+    <h3 id="confirm-title">Confirmar</h3>
+    <p id="confirm-msg">Tem certeza?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" onclick="closeConfirm(false)">Cancelar</button>
+      <button class="btn btn-danger" onclick="closeConfirm(true)">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ===================== DB =====================
+const DB = {
+  onts: [],
+  modelos: [],
+  tecnicos: [],
+  movimentacoes: [],
+  config: { user: 'admin', pass: 'admin123' }
+};
+
+function save() { localStorage.setItem('ontmgr', JSON.stringify(DB)); }
+function load() {
+  const d = localStorage.getItem('ontmgr');
+  if (d) {
+    const p = JSON.parse(d);
+    DB.onts = p.onts || [];
+    DB.modelos = p.modelos || [];
+    DB.tecnicos = p.tecnicos || [];
+    DB.movimentacoes = p.movimentacoes || [];
+    DB.config = p.config || { user: 'admin', pass: 'admin123' };
+  }
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+// ===================== AUTH =====================
+load();
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if (u === DB.config.user && p === DB.config.pass) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    document.getElementById('sidebar-user').textContent = u;
+    initApp();
+  } else {
+    document.getElementById('login-err').textContent = '⚠ Usuário ou senha incorretos';
+  }
+}
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-err').textContent = '';
+}
+
+// ===================== NAV =====================
+function navTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.toLowerCase().includes(page === 'dashboard' ? 'dash' : page === 'modelos' ? 'modelo' : page === 'tecnicos' ? 'técnico' : page === 'movimentacoes' ? 'mov' : page === 'relatorios' ? 'relat' : page === 'importar' ? 'importar' : page === 'onts' ? 'ont' : '')) {
+      n.classList.add('active');
+    }
+  });
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'onts') { populateModeloSelect(); renderOnts(); }
+  if (page === 'modelos') renderModelos();
+  if (page === 'tecnicos') renderTecnicos();
+  if (page === 'movimentacoes') { populateMovTecnicos(); renderHistorico(); }
+  if (page === 'importar') renderDBStats();
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+function toggleForm(id) {
+  const el = document.getElementById(id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function switchTab(ns, tab) {
+  document.querySelectorAll(`#page-${ns}imentacoes .tab`).forEach(t => t.classList.remove('active'));
+  document.querySelectorAll(`#page-${ns}imentacoes .tab-content`).forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById(`${ns}-tab-${tab}`).classList.add('active');
+  if (tab === 'historico') renderHistorico();
+}
+
+// ===================== TOAST =====================
+function toast(msg, type = 'info') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warn: '⚠️' };
+  t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 3000);
+}
+
+// ===================== CONFIRM =====================
+let confirmCb = null;
+function showConfirm(title, msg, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-bg').classList.add('open');
+  confirmCb = cb;
+}
+function closeConfirm(ok) {
+  document.getElementById('confirm-bg').classList.remove('open');
+  if (ok && confirmCb) confirmCb();
+  confirmCb = null;
+}
+
+// ===================== MODAL =====================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ===================== BADGES =====================
+function statusBadge(s) {
+  const m = { 'Disponível': 'disp', 'Instalada': 'inst', 'Defeituosa': 'def', 'Reservada': 'res', 'Baixada': 'baixa' };
+  return `<span class="badge badge-${m[s] || 'disp'}">${s}</span>`;
+}
+
+function catBadge(c) { return `<span class="badge badge-gpon">${c || '—'}</span>`; }
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  const onts = DB.onts;
+  const counts = { total: onts.length, disp: 0, inst: 0, def: 0, res: 0, baixa: 0 };
+  onts.forEach(o => {
+    if (o.status === 'Disponível') counts.disp++;
+    else if (o.status === 'Instalada') counts.inst++;
+    else if (o.status === 'Defeituosa') counts.def++;
+    else if (o.status === 'Reservada') counts.res++;
+    else if (o.status === 'Baixada') counts.baixa++;
+  });
+
+  const cards = [
+    { cls: 'c-total', num: counts.total, label: 'Total de ONTs', icon: '📡' },
+    { cls: 'c-disp', num: counts.disp, label: 'Disponíveis', icon: '✅' },
+    { cls: 'c-inst', num: counts.inst, label: 'Instaladas', icon: '📶' },
+    { cls: 'c-def', num: counts.def, label: 'Defeituosas', icon: '🔧' },
+    { cls: 'c-res', num: counts.res, label: 'Reservadas', icon: '🔒' },
+    { cls: 'c-baixa', num: counts.baixa, label: 'Baixadas', icon: '❌' },
+    { cls: 'c-mod', num: DB.modelos.length, label: 'Modelos', icon: '📦' },
+    { cls: 'c-tec', num: DB.tecnicos.length, label: 'Técnicos', icon: '👷' },
+  ];
+  document.getElementById('dash-cards').innerHTML = cards.map(c =>
+    `<div class="stat-card ${c.cls}"><div class="stat-card-num">${c.num}</div><div class="stat-card-label">${c.label}</div><div class="stat-card-icon">${c.icon}</div></div>`
+  ).join('');
+
+  // Chart status
+  const total = counts.total || 1;
+  const statusData = [
+    { label: 'Disponível', val: counts.disp, color: 'var(--green)' },
+    { label: 'Instalada', val: counts.inst, color: 'var(--purple)' },
+    { label: 'Defeituosa', val: counts.def, color: 'var(--red)' },
+    { label: 'Reservada', val: counts.res, color: 'var(--yellow)' },
+    { label: 'Baixada', val: counts.baixa, color: 'var(--text-dim)' },
+  ];
+  document.getElementById('chart-status').innerHTML = statusData.map(s =>
+    `<div class="chart-bar-row"><div class="chart-bar-label">${s.label}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(s.val/total*100)}%;background:${s.color};"></div></div><div class="chart-bar-val">${s.val}</div></div>`
+  ).join('');
+
+  // Chart modelos
+  const modeloCounts = {};
+  onts.forEach(o => { if (o.modelo) modeloCounts[o.modelo] = (modeloCounts[o.modelo] || 0) + 1; });
+  const topMod = Object.entries(modeloCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const maxMod = topMod.length ? topMod[0][1] : 1;
+  document.getElementById('chart-modelos').innerHTML = topMod.length
+    ? topMod.map(([m, v]) => `<div class="chart-bar-row"><div class="chart-bar-label">${m}</div><div class="chart-bar-track"><div class="chart-bar-fill" style="width:${Math.round(v/maxMod*100)}%;background:var(--accent);"></div></div><div class="chart-bar-val">${v}</div></div>`).join('')
+    : '<p style="color:var(--text-dim);font-size:12px;">Nenhuma ONT cadastrada</p>';
+
+  // Últimas movs
+  const movs = [...DB.movimentacoes].sort((a, b) => b.ts - a.ts).slice(0, 5);
+  const tipoIcons = { saida: '📤', instalacao: '🏠', devolucao: '📥', status: '🔄' };
+  const tipoLabels = { saida: 'Saída para Técnico', instalacao: 'Instalação', devolucao: 'Devolução', status: 'Alteração de Status' };
+  document.getElementById('dash-movs').innerHTML = movs.length
+    ? movs.map(m => `<div class="mov-card"><div class="mov-icon">${tipoIcons[m.tipo] || '🔄'}</div><div class="mov-info"><strong>${tipoLabels[m.tipo] || m.tipo} — <span class="hl">${m.ontRef || '—'}</span></strong><span>${m.obs || ''} ${m.tecnico ? '| Técnico: ' + m.tecnico : ''} ${m.cliente ? '| Cliente: ' + m.cliente : ''}</span></div><div class="mov-date">${fmtDate(m.data)}</div></div>`).join('')
+    : '<p style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px;">Nenhuma movimentação registrada</p>';
+}
+
+// ===================== ONTS =====================
+let ontPage = 1; const PAGE_SIZE = 20;
+function filteredOnts() {
+  const q = (document.getElementById('ont-search')?.value || '').toLowerCase();
+  const fs = document.getElementById('ont-filter-status')?.value || '';
+  return DB.onts.filter(o => {
+    const match = !q || [o.gpon, o.mac, o.serial, o.modelo, o.marca, o.categoria].join(' ').toLowerCase().includes(q);
+    const st = !fs || o.status === fs;
+    return match && st;
+  });
+}
+
+function renderOnts() {
+  const list = filteredOnts();
+  const start = (ontPage - 1) * PAGE_SIZE;
+  const page = list.slice(start, start + PAGE_SIZE);
+  const tbody = document.getElementById('ont-tbody');
+
+  if (!page.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">Nenhuma ONT encontrada</td></tr>';
+  } else {
+    tbody.innerHTML = page.map(o => `
+      <tr>
+        <td>${catBadge(o.categoria)}</td>
+        <td>${o.marca || '—'}</td>
+        <td>${o.modelo || '—'}</td>
+        <td class="hl">${o.gpon || '—'}</td>
+        <td>${o.mac || '—'}</td>
+        <td>${o.serial || '—'}</td>
+        <td>${statusBadge(o.status)}</td>
+        <td>${fmtDate(o.dataEntrada)}</td>
+        <td class="td-actions">
+          <button class="btn btn-ghost btn-sm" onclick="editOnt('${o.id}')">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="openStatusModal('${o.id}')">🔄</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteOnt('${o.id}')">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+  renderPagination('ont', Math.ceil(list.length / PAGE_SIZE), ontPage);
+}
+
+function renderPagination(ns, total, cur) {
+  const el = document.getElementById(ns + '-pagination');
+  if (total <= 1) { el.innerHTML = ''; return; }
+  let html = `<span class="page-info">Pág ${cur}/${total}</span>`;
+  if (cur > 1) html += `<button class="page-btn" onclick="${ns}Page=${cur-1};render${ns==='ont'?'Onts':'Historico'}()">‹</button>`;
+  for (let i = 1; i <= total; i++) {
+    if (total > 7 && i > 2 && i < total - 1 && Math.abs(i - cur) > 1) { if (i === cur - 2 || i === cur + 2) html += '<span style="color:var(--text-dim);padding:0 4px;">…</span>'; continue; }
+    html += `<button class="page-btn ${i === cur ? 'active' : ''}" onclick="${ns}Page=${i};render${ns==='ont'?'Onts':'Historico'}()">${i}</button>`;
+  }
+  if (cur < total) html += `<button class="page-btn" onclick="${ns}Page=${cur+1};render${ns==='ont'?'Onts':'Historico'}()">›</button>`;
+  el.innerHTML = html;
+}
+
+function populateModeloSelect() {
+  const sel = document.getElementById('ont-modelo');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Selecione o modelo —</option>';
+  DB.modelos.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.nome;
+    opt.textContent = `${m.marca} — ${m.nome}`;
+    sel.appendChild(opt);
+  });
+  if (cur) sel.value = cur;
+}
+
+function saveOnt() {
+  const id = document.getElementById('ont-edit-id').value;
+  const gpon = document.getElementById('ont-gpon').value.trim();
+  const mac = document.getElementById('ont-mac').value.trim();
+  const serial = document.getElementById('ont-serial').value.trim();
+  const modelo = document.getElementById('ont-modelo').value;
+  const marca = document.getElementById('ont-marca').value.trim();
+
+  if (!modelo) { toast('Selecione um modelo', 'warn'); return; }
+  if (!serial && !gpon && !mac) { toast('Informe ao menos Serial, GPON ou MAC', 'warn'); return; }
+
+  // Duplicate check
+  const dup = DB.onts.find(o => o.id !== id && ((gpon && o.gpon === gpon) || (mac && o.mac === mac) || (serial && o.serial === serial)));
+  if (dup) { toast('GPON, MAC ou Serial já cadastrado!', 'error'); return; }
+
+  const ont = {
+    id: id || uid(),
+    categoria: document.getElementById('ont-cat').value,
+    marca, modelo,
+    serial, gpon, mac,
+    dataEntrada: document.getElementById('ont-data').value,
+    fornecedor: document.getElementById('ont-fornecedor').value.trim(),
+    obs: document.getElementById('ont-obs').value.trim(),
+    status: id ? (DB.onts.find(o => o.id === id)?.status || 'Disponível') : 'Disponível',
+    criadoEm: id ? (DB.onts.find(o => o.id === id)?.criadoEm || Date.now()) : Date.now()
+  };
+
+  if (id) { const idx = DB.onts.findIndex(o => o.id === id); DB.onts[idx] = ont; toast('ONT atualizada!', 'success'); }
+  else { DB.onts.push(ont); toast('ONT cadastrada!', 'success'); }
+
+  save(); clearOntForm(); renderOnts(); renderModelos();
+}
+
+function editOnt(id) {
+  const o = DB.onts.find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('ont-form').style.display = 'block';
+  document.getElementById('ont-edit-id').value = o.id;
+  document.getElementById('ont-cat').value = o.categoria || '';
+  document.getElementById('ont-marca').value = o.marca || '';
+  populateModeloSelect();
+  document.getElementById('ont-modelo').value = o.modelo || '';
+  document.getElementById('ont-serial').value = o.serial || '';
+  document.getElementById('ont-gpon').value = o.gpon || '';
+  document.getElementById('ont-mac').value = o.mac || '';
+  document.getElementById('ont-data').value = o.dataEntrada || '';
+  document.getElementById('ont-fornecedor').value = o.fornecedor || '';
+  document.getElementById('ont-obs').value = o.obs || '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteOnt(id) {
+  showConfirm('Excluir ONT', 'Esta ação não pode ser desfeita. Excluir a ONT?', () => {
+    DB.onts = DB.onts.filter(o => o.id !== id);
+    save(); renderOnts(); renderModelos(); toast('ONT excluída', 'info');
+  });
+}
+
+function clearOntForm() {
+  ['ont-edit-id','ont-cat','ont-marca','ont-serial','ont-gpon','ont-mac','ont-data','ont-fornecedor','ont-obs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
+  });
+  document.getElementById('ont-modelo').value = '';
+}
+
+// STATUS MODAL
+function openStatusModal(id) {
+  const o = DB.onts.find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('modal-status-id').value = id;
+  document.getElementById('modal-novo-status').value = o.status;
+  document.getElementById('modal-status-obs').value = '';
+  document.getElementById('modal-status-info').innerHTML = `
+    <strong style="color:var(--text-bright);">${o.marca} ${o.modelo}</strong><br>
+    GPON: ${o.gpon || '—'} | MAC: ${o.mac || '—'} | Serial: ${o.serial || '—'}<br>
+    Status atual: ${statusBadge(o.status)}`;
+  openModal('modal-status');
+}
+
+function confirmStatus() {
+  const id = document.getElementById('modal-status-id').value;
+  const novoStatus = document.getElementById('modal-novo-status').value;
+  const obs = document.getElementById('modal-status-obs').value;
+  const o = DB.onts.find(x => x.id === id);
+  if (!o) return;
+  const oldStatus = o.status;
+  o.status = novoStatus;
+  DB.movimentacoes.push({
+    id: uid(), tipo: 'status', ontId: id, ontRef: o.gpon || o.serial || o.mac,
+    statusAnterior: oldStatus, statusNovo: novoStatus, obs,
+    data: new Date().toISOString().split('T')[0], ts: Date.now()
+  });
+  save(); closeModal('modal-status'); renderOnts(); toast(`Status alterado para ${novoStatus}`, 'success');
+}
+
+// ===================== MODELOS =====================
+function renderModelos() {
+  const q = (document.getElementById('mod-search')?.value || '').toLowerCase();
+  const list = DB.modelos.filter(m => !q || `${m.marca} ${m.nome} ${m.categoria}`.toLowerCase().includes(q));
+  const tbody = document.getElementById('mod-tbody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Nenhum modelo cadastrado</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(m => {
+    const count = DB.onts.filter(o => o.modelo === m.nome).length;
+    return `<tr>
+      <td>${catBadge(m.categoria)}</td>
+      <td>${m.marca || '—'}</td>
+      <td style="color:var(--text-bright);font-weight:600;">${m.nome}</td>
+      <td style="color:var(--text-dim)">${m.desc || '—'}</td>
+      <td><span class="modelo-count">📡 ${count} un.</span></td>
+      <td class="td-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editModelo('${m.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteModelo('${m.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function saveModelo() {
+  const id = document.getElementById('mod-edit-id').value;
+  const nome = document.getElementById('mod-nome').value.trim();
+  const marca = document.getElementById('mod-marca').value.trim();
+  if (!nome || !marca) { toast('Informe marca e modelo', 'warn'); return; }
+  const dup = DB.modelos.find(m => m.id !== id && m.nome.toLowerCase() === nome.toLowerCase() && m.marca.toLowerCase() === marca.toLowerCase());
+  if (dup) { toast('Modelo já cadastrado para esta marca!', 'error'); return; }
+  const mod = { id: id || uid(), categoria: document.getElementById('mod-cat').value, marca, nome, desc: document.getElementById('mod-desc').value.trim() };
+  if (id) { const idx = DB.modelos.findIndex(m => m.id === id); DB.modelos[idx] = mod; toast('Modelo atualizado!', 'success'); }
+  else { DB.modelos.push(mod); toast('Modelo cadastrado!', 'success'); }
+  save(); clearModeloForm(); renderModelos();
+}
+
+function editModelo(id) {
+  const m = DB.modelos.find(x => x.id === id);
+  if (!m) return;
+  document.getElementById('mod-edit-id').value = m.id;
+  document.getElementById('mod-cat').value = m.categoria || '';
+  document.getElementById('mod-marca').value = m.marca || '';
+  document.getElementById('mod-nome').value = m.nome || '';
+  document.getElementById('mod-desc').value = m.desc || '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteModelo(id) {
+  const m = DB.modelos.find(x => x.id === id);
+  const hasOnts = DB.onts.some(o => o.modelo === m?.nome);
+  if (hasOnts) { toast('Não é possível excluir: existem ONTs vinculadas a este modelo', 'error'); return; }
+  showConfirm('Excluir Modelo', `Excluir o modelo "${m?.nome}"?`, () => {
+    DB.modelos = DB.modelos.filter(x => x.id !== id);
+    save(); renderModelos(); toast('Modelo excluído', 'info');
+  });
+}
+
+function clearModeloForm() {
+  ['mod-edit-id','mod-cat','mod-marca','mod-nome','mod-desc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.tagName === 'SELECT') el.selectedIndex = 0; else el.value = '';
+  });
+}
+
+// ===================== TÉCNICOS =====================
+function renderTecnicos() {
+  const q = (document.getElementById('tec-search')?.value || '').toLowerCase();
+  const list = DB.tecnicos.filter(t => !q || t.nome.toLowerCase().includes(q));
+  const tbody = document.getElementById('tec-tbody');
+  if (!list.length) { tbody.innerHTML = '<tr class="empty-row"><td colspan="4">Nenhum técnico cadastrado</td></tr>'; return; }
+  tbody.innerHTML = list.map((t, i) => {
+    const atrib = DB.movimentacoes.filter(m => m.tecnico === t.nome && (m.tipo === 'saida' || m.tipo === 'instalacao')).length;
+    return `<tr>
+      <td style="color:var(--text-dim);">${i + 1}</td>
+      <td style="color:var(--text-bright);font-weight:600;">${t.nome}</td>
+      <td><span class="modelo-count">📡 ${atrib}</span></td>
+      <td class="td-actions">
+        <button class="btn btn-ghost btn-sm" onclick="editTecnico('${t.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTecnico('${t.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function saveTecnico() {
+  const id = document.getElementById('tec-edit-id').value;
+  const nome = document.getElementById('tec-nome').value.trim();
+  if (!nome) { toast('Informe o nome do técnico', 'warn'); return; }
+  const dup = DB.tecnicos.find(t => t.id !== id && t.nome.toLowerCase() === nome.toLowerCase());
+  if (dup) { toast('Técnico já cadastrado!', 'error'); return; }
+  const tec = { id: id || uid(), nome };
+  if (id) { const idx = DB.tecnicos.findIndex(t => t.id === id); DB.tecnicos[idx] = tec; toast('Técnico atualizado!', 'success'); }
+  else { DB.tecnicos.push(tec); toast('Técnico cadastrado!', 'success'); }
+  save(); clearTecForm(); renderTecnicos();
+}
+
+function editTecnico(id) {
+  const t = DB.tecnicos.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('tec-edit-id').value = t.id;
+  document.getElementById('tec-nome').value = t.nome;
+}
+
+function deleteTecnico(id) {
+  const t = DB.tecnicos.find(x => x.id === id);
+  showConfirm('Excluir Técnico', `Excluir "${t?.nome}"?`, () => {
+    DB.tecnicos = DB.tecnicos.filter(x => x.id !== id);
+    save(); renderTecnicos(); toast('Técnico excluído', 'info');
+  });
+}
+
+function clearTecForm() {
+  document.getElementById('tec-edit-id').value = '';
+  document.getElementById('tec-nome').value = '';
+}
+
+// ===================== MOVIMENTAÇÕES =====================
+function populateMovTecnicos() {
+  const sel = document.getElementById('mov-tecnico');
+  sel.innerHTML = '<option value="">— Selecione —</option>';
+  DB.tecnicos.forEach(t => { const o = document.createElement('option'); o.value = t.nome; o.textContent = t.nome; sel.appendChild(o); });
+  document.getElementById('mov-data').value = new Date().toISOString().split('T')[0];
+}
+
+function updateMovForm() {
+  const tipo = document.getElementById('mov-tipo').value;
+  const fields = ['tecnico','cliente','cpf','endereco','motivo','status-novo','status-dev'];
+  fields.forEach(f => document.getElementById('mov-field-' + f).style.display = 'none');
+  if (tipo === 'saida') document.getElementById('mov-field-tecnico').style.display = '';
+  if (tipo === 'instalacao') {
+    document.getElementById('mov-field-tecnico').style.display = '';
+    document.getElementById('mov-field-cliente').style.display = '';
+    document.getElementById('mov-field-cpf').style.display = '';
+    document.getElementById('mov-field-endereco').style.display = '';
+  }
+  if (tipo === 'devolucao') {
+    document.getElementById('mov-field-motivo').style.display = '';
+    document.getElementById('mov-field-status-dev').style.display = '';
+  }
+  if (tipo === 'status') document.getElementById('mov-field-status-novo').style.display = '';
+}
+
+let movOntResults = [];
+function searchOntForMov() {
+  const q = document.getElementById('mov-ont-search').value.toLowerCase();
+  document.getElementById('mov-ont-id').value = '';
+  document.getElementById('mov-ont-preview').style.display = 'none';
+  if (!q) { document.getElementById('mov-ont-results').innerHTML = ''; return; }
+  movOntResults = DB.onts.filter(o => [o.gpon, o.mac, o.serial, o.modelo, o.marca].join(' ').toLowerCase().includes(q)).slice(0, 6);
+  if (!movOntResults.length) { document.getElementById('mov-ont-results').innerHTML = '<div style="font-size:12px;color:var(--text-dim);padding:8px;font-family:var(--mono);">Nenhuma ONT encontrada</div>'; return; }
+  document.getElementById('mov-ont-results').innerHTML = `<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:8px;margin-top:6px;overflow:hidden;">${movOntResults.map(o =>
+    `<div onclick="selectMovOnt('${o.id}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12px;font-family:var(--mono);transition:background 0.15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+      <strong style="color:var(--text-bright);">${o.marca} ${o.modelo}</strong> — ${statusBadge(o.status)}<br>
+      <span style="color:var(--text-dim);">GPON: ${o.gpon || '—'} | MAC: ${o.mac || '—'} | Serial: ${o.serial || '—'}</span>
+    </div>`).join('')}</div>`;
+}
+
+function selectMovOnt(id) {
+  const o = DB.onts.find(x => x.id === id);
+  if (!o) return;
+  document.getElementById('mov-ont-id').value = id;
+  document.getElementById('mov-ont-search').value = `${o.marca} ${o.modelo} — ${o.gpon || o.serial || o.mac}`;
+  document.getElementById('mov-ont-results').innerHTML = '';
+  document.getElementById('mov-ont-preview').style.display = 'block';
+  document.getElementById('mov-ont-info').innerHTML = `
+    <div style="font-family:var(--mono);font-size:13px;line-height:2;">
+      <strong style="color:var(--text-bright);">${o.marca} ${o.modelo}</strong> — ${catBadge(o.categoria)}<br>
+      GPON SN: <span class="hl">${o.gpon || '—'}</span> | MAC: <span class="hl">${o.mac || '—'}</span> | Serial: <span class="hl">${o.serial || '—'}</span><br>
+      Status atual: ${statusBadge(o.status)} | Fornecedor: ${o.fornecedor || '—'}
+    </div>`;
+}
+
+function saveMovimentacao() {
+  const tipo = document.getElementById('mov-tipo').value;
+  const ontId = document.getElementById('mov-ont-id').value;
+  const data = document.getElementById('mov-data').value;
+
+  if (!tipo) { toast('Selecione o tipo de movimentação', 'warn'); return; }
+  if (!ontId) { toast('Selecione uma ONT', 'warn'); return; }
+  if (!data) { toast('Informe a data', 'warn'); return; }
+
+  const o = DB.onts.find(x => x.id === ontId);
+  if (!o) { toast('ONT não encontrada', 'error'); return; }
+
+  const mov = {
+    id: uid(), tipo, ontId, ontRef: o.gpon || o.serial || o.mac || `${o.marca} ${o.modelo}`,
+    data, ts: Date.now(),
+    tecnico: document.getElementById('mov-tecnico').value,
+    cliente: document.getElementById('mov-cliente').value,
+    cpf: document.getElementById('mov-cpf').value,
+    endereco: document.getElementById('mov-endereco').value,
+    motivo: document.getElementById('mov-motivo').value,
+    obs: document.getElementById('mov-obs').value,
+    statusAnterior: o.status
+  };
+
+  if (tipo === 'saida') { o.status = 'Reservada'; mov.statusNovo = 'Reservada'; }
+  if (tipo === 'instalacao') { o.status = 'Instalada'; mov.statusNovo = 'Instalada'; }
+  if (tipo === 'devolucao') {
+    const ns = document.getElementById('mov-status-dev').value;
+    o.status = ns; mov.statusNovo = ns;
+  }
+  if (tipo === 'status') {
+    const ns = document.getElementById('mov-status-novo').value;
+    o.status = ns; mov.statusNovo = ns;
+  }
+
+  DB.movimentacoes.push(mov);
+  save();
+  toast('Movimentação registrada!', 'success');
+  // reset
+  document.getElementById('mov-tipo').value = '';
+  document.getElementById('mov-ont-id').value = '';
+  document.getElementById('mov-ont-search').value = '';
+  document.getElementById('mov-obs').value = '';
+  document.getElementById('mov-ont-preview').style.display = 'none';
+  updateMovForm();
+}
+
+let histPage = 1;
+function renderHistorico() {
+  const q = (document.getElementById('mov-hist-search')?.value || '').toLowerCase();
+  const ft = document.getElementById('mov-hist-tipo')?.value || '';
+  const list = [...DB.movimentacoes].filter(m => {
+    const match = !q || [m.ontRef, m.tecnico, m.cliente, m.obs].join(' ').toLowerCase().includes(q);
+    const tm = !ft || m.tipo === ft;
+    return match && tm;
+  }).sort((a, b) => b.ts - a.ts);
+
+  const start = (histPage - 1) * PAGE_SIZE;
+  const page = list.slice(start, start + PAGE_SIZE);
+  const tipoIcons = { saida: '📤', instalacao: '🏠', devolucao: '📥', status: '🔄' };
+  const tipoLabels = { saida: 'Saída para Técnico', instalacao: 'Instalação', devolucao: 'Devolução', status: 'Alt. Status' };
+
+  document.getElementById('historico-list').innerHTML = page.length
+    ? page.map(m => `<div class="mov-card">
+        <div class="mov-icon">${tipoIcons[m.tipo] || '🔄'}</div>
+        <div class="mov-info">
+          <strong>${tipoLabels[m.tipo] || m.tipo} — <span class="hl">${m.ontRef || '—'}</span></strong>
+          <span>
+            ${m.tecnico ? 'Técnico: ' + m.tecnico + ' ' : ''}
+            ${m.cliente ? '| Cliente: ' + m.cliente + ' ' : ''}
+            ${m.statusAnterior && m.statusNovo ? '| ' + m.statusAnterior + ' → ' + m.statusNovo + ' ' : ''}
+            ${m.obs ? '| ' + m.obs : ''}
+          </span>
+        </div>
+        <div class="mov-date">${fmtDate(m.data)}</div>
+      </div>`).join('')
+    : '<p style="color:var(--text-dim);text-align:center;padding:30px;font-size:13px;">Nenhuma movimentação encontrada</p>';
+
+  renderPagination('hist', Math.ceil(list.length / PAGE_SIZE), histPage);
+}
+
+// ===================== RELATÓRIOS =====================
+let relatorioData = [];
+function gerarRelatorio(tipo) {
+  const el = document.getElementById('relatorio-output');
+  const titles = { disponiveis: '✅ ONTs Disponíveis', instaladas: '📶 ONTs Instaladas', defeituosas: '🔧 ONTs Defeituosas', modelos: '📦 ONTs por Modelo', tecnicos: '👷 ONTs por Técnico' };
+  document.getElementById('rel-title').textContent = titles[tipo];
+  el.style.display = 'block';
+
+  if (tipo === 'modelos') {
+    const rows = DB.modelos.map(m => ({ modelo: m.nome, marca: m.marca, cat: m.categoria, count: DB.onts.filter(o => o.modelo === m.nome).length })).sort((a, b) => b.count - a.count);
+    document.getElementById('rel-thead').innerHTML = '<tr><th>Modelo</th><th>Marca</th><th>Categoria</th><th>Unidades</th></tr>';
+    document.getElementById('rel-tbody').innerHTML = rows.map(r => `<tr><td>${r.modelo}</td><td>${r.marca}</td><td>${r.cat}</td><td><span class="modelo-count">${r.count}</span></td></tr>`).join('') || '<tr class="empty-row"><td colspan="4">Sem dados</td></tr>';
+    relatorioData = rows;
+  } else if (tipo === 'tecnicos') {
+    const rows = DB.tecnicos.map(t => ({ nome: t.nome, movs: DB.movimentacoes.filter(m => m.tecnico === t.nome).length }));
+    document.getElementById('rel-thead').innerHTML = '<tr><th>Técnico</th><th>Movimentações</th></tr>';
+    document.getElementById('rel-tbody').innerHTML = rows.map(r => `<tr><td>${r.nome}</td><td>${r.movs}</td></tr>`).join('') || '<tr class="empty-row"><td colspan="2">Sem dados</td></tr>';
+    relatorioData = rows;
+  } else {
+    const statusMap = { disponiveis: 'Disponível', instaladas: 'Instalada', defeituosas: 'Defeituosa' };
+    const filtered = DB.onts.filter(o => o.status === statusMap[tipo]);
+    document.getElementById('rel-thead').innerHTML = '<tr><th>Categoria</th><th>Marca</th><th>Modelo</th><th>GPON SN</th><th>MAC</th><th>Serial</th><th>Status</th></tr>';
+    document.getElementById('rel-tbody').innerHTML = filtered.map(o => `<tr><td>${o.categoria}</td><td>${o.marca}</td><td>${o.modelo}</td><td>${o.gpon||'—'}</td><td>${o.mac||'—'}</td><td>${o.serial||'—'}</td><td>${statusBadge(o.status)}</td></tr>`).join('') || '<tr class="empty-row"><td colspan="7">Sem dados</td></tr>';
+    relatorioData = filtered;
+  }
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function exportRelatorioCSV() {
+  if (!relatorioData.length) { toast('Nenhum dado para exportar', 'warn'); return; }
+  const keys = Object.keys(relatorioData[0]);
+  const csv = [keys.join(','), ...relatorioData.map(r => keys.map(k => `"${r[k] || ''}"`).join(','))].join('\n');
+  downloadFile(csv, 'relatorio.csv', 'text/csv');
+}
+
+// ===================== IMPORT/EXPORT =====================
+function exportCSV() {
+  const rows = DB.onts.map(o => [o.categoria, o.marca, o.modelo, o.gpon, o.mac, o.serial, o.status, o.dataEntrada, o.fornecedor, o.obs].map(v => `"${v||''}"`).join(','));
+  const csv = ['Categoria,Marca,Modelo,GPON,MAC,Serial,Status,DataEntrada,Fornecedor,Obs', ...rows].join('\n');
+  downloadFile(csv, `onts-${fmtDate(new Date().toISOString().split('T')[0])}.csv`, 'text/csv');
+  toast('CSV exportado!', 'success');
+}
+
+function exportJSON() {
+  const data = JSON.stringify(DB, null, 2);
+  downloadFile(data, `backup-ontmgr-${Date.now()}.json`, 'application/json');
+  toast('Backup JSON exportado!', 'success');
+}
+
+function restoreJSON(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      showConfirm('Restaurar Backup', 'Isso substituirá TODOS os dados atuais. Continuar?', () => {
+        if (data.onts) DB.onts = data.onts;
+        if (data.modelos) DB.modelos = data.modelos;
+        if (data.tecnicos) DB.tecnicos = data.tecnicos;
+        if (data.movimentacoes) DB.movimentacoes = data.movimentacoes;
+        if (data.config) DB.config = data.config;
+        save(); renderDBStats(); toast('Backup restaurado com sucesso!', 'success');
+      });
+    } catch { toast('Arquivo JSON inválido', 'error'); }
+  };
+  r.readAsText(file);
+  event.target.value = '';
+}
+
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { toast('CSV vazio ou inválido', 'error'); return; }
+    const header = lines[0].toLowerCase().replace(/"/g,'').split(',').map(h => h.trim());
+    let ok = 0, skip = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const vals = lines[i].split(',').map(v => v.replace(/^"|"$/g, '').trim());
+      const row = {};
+      header.forEach((h, idx) => row[h] = vals[idx] || '');
+      const gpon = row['gpon'] || ''; const mac = row['mac'] || ''; const serial = row['serial'] || '';
+      if (!serial && !gpon && !mac) { skip++; continue; }
+      const dup = DB.onts.find(o => (gpon && o.gpon === gpon) || (mac && o.mac === mac) || (serial && o.serial === serial));
+      if (dup) { skip++; continue; }
+      DB.onts.push({ id: uid(), categoria: row['categoria'] || '', marca: row['marca'] || '', modelo: row['modelo'] || '', gpon, mac, serial, status: 'Disponível', dataEntrada: new Date().toISOString().split('T')[0], fornecedor: '', obs: '', criadoEm: Date.now() });
+      ok++;
+    }
+    save();
+    document.getElementById('import-result').innerHTML = `<div style="padding:12px;background:var(--green-dim);border:1px solid var(--green);border-radius:8px;color:var(--green);">✅ Importadas: <strong>${ok}</strong> | ⚠️ Ignoradas: <strong>${skip}</strong></div>`;
+    toast(`${ok} ONTs importadas!`, 'success');
+    event.target.value = '';
+  };
+  r.readAsText(file);
+}
+
+function renderDBStats() {
+  document.getElementById('db-stats').innerHTML = `
+    📡 ONTs: ${DB.onts.length}<br>
+    📦 Modelos: ${DB.modelos.length}<br>
+    👷 Técnicos: ${DB.tecnicos.length}<br>
+    🔄 Movimentações: ${DB.movimentacoes.length}<br>
+    💾 Tamanho aprox: ${(JSON.stringify(DB).length / 1024).toFixed(1)} KB`;
+}
+
+function dz_over(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function dz_leave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function dz_drop(e) {
+  e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) importCSV({ target: { files: [file], value: '' } });
+}
+
+// ===================== UTILS =====================
+function fmtDate(d) {
+  if (!d) return '—';
+  try { const [y, m, day] = d.split('T')[0].split('-'); return `${day}/${m}/${y}`; } catch { return d; }
+}
+
+function downloadFile(content, name, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name;
+  a.click();
+}
+
+// ===================== INIT =====================
+function initApp() {
+  document.getElementById('ont-data').value = new Date().toISOString().split('T')[0];
+  populateModeloSelect();
+  renderDashboard();
+}
+
+// Init nav items correctly
+document.querySelectorAll('.nav-item').forEach(n => {
+  n.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+    n.classList.add('active');
+  });
+});
+
+// Close sidebar on outside click (mobile)
+document.addEventListener('click', e => {
+  const sb = document.getElementById('sidebar');
+  const mt = document.getElementById('menu-toggle');
+  if (sb.classList.contains('open') && !sb.contains(e.target) && !mt.contains(e.target)) {
+    sb.classList.remove('open');
+  }
+});
+
+// Auto-login check (for development — remove in production)
+// doLogin() can be called if needed
+</script>
+</body>
+</html>
