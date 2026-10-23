@@ -282,12 +282,18 @@ tbody td.td-actions{display:flex;gap:6px;flex-wrap:nowrap;}
       <div class="nav-section">CADASTROS</div>
       <div class="nav-item" onclick="navTo('modelos')"><span class="ni">📦</span> Modelos</div>
       <div class="nav-item" onclick="navTo('tecnicos')"><span class="ni">👷</span> Técnicos</div>
+      <div class="nav-section">ATENDIMENTO</div>
+      <div class="nav-item" onclick="navTo('mapa')"><span class="ni">🗺️</span> Mapa de Cobertura</div>
+      <div class="nav-item" onclick="navTo('interessados')"><span class="ni">👥</span> Interessados</div>
+      <div class="nav-item" onclick="navTo('categorias')"><span class="ni">🏷️</span> Categorias</div>
+      <div class="nav-item" onclick="navTo('etiquetas')"><span class="ni">🔖</span> Etiquetas</div>
       <div class="nav-section">OPERAÇÕES</div>
       <div class="nav-item" onclick="navTo('movimentacoes')"><span class="ni">🔄</span> Movimentações</div>
       <div class="nav-item" onclick="navTo('relatorios')"><span class="ni">📊</span> Relatórios</div>
       <div class="nav-section">DADOS</div>
       <div class="nav-item" onclick="navTo('importar')"><span class="ni">📤</span> Importar/Exportar</div>
     </nav>
+        </div>
     <div class="sidebar-footer">
       <div class="user-info"><strong id="sidebar-user">admin</strong>Administrador</div>
       <button class="btn-logout" onclick="doLogout()">⏻ Sair do Sistema</button>
@@ -295,6 +301,271 @@ tbody td.td-actions{display:flex;gap:6px;flex-wrap:nowrap;}
   </div>
 
   <div class="main-content">
+
+    <!-- MAPA DE COBERTURA -->
+    <div class="page" id="page-mapa">
+      <div class="page-header">
+        <h1>🗺️ Mapa de Cobertura e Expansão</h1>
+        <p>Visualização geográfica de interessados e regiões sem cobertura</p>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">🧭 Filtros e Regiões</span>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <select class="search-input" id="mapa-filter-status" onchange="renderMapa()"><option value="">Todos os Status de Cobertura</option><option value="Sem cobertura">Sem cobertura</option><option value="Em análise técnica">Em análise técnica</option><option value="Planejamento de expansão">Planejamento de expansão</option><option value="Expansão em andamento">Expansão em andamento</option><option value="Cobertura disponível">Cobertura disponível</option><option value="Área inviável no momento">Área inviável no momento</option></select>
+            <button class="btn btn-primary btn-sm" onclick="openRegiaoModal()">➕ Nova Região</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;flex-wrap:wrap;">
+          <div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;min-height:420px;display:flex;flex-direction:column;justify-content:center;align-items:center;position:relative;overflow:hidden;" id="mapa-container">
+            <div style="text-align:center;color:var(--text-dim);">
+              <div style="font-size:48px;margin-bottom:8px;">🗺️</div>
+              <div style="font-family:var(--mono);font-size:14px;color:var(--text-bright);margin-bottom:4px;">Google Maps / Vista Geográfica Integrada</div>
+              <div style="font-size:12px;max-width:320px;margin:0 auto 16px;">Insira sua chave de API do Google Maps nas configurações ou utilize o painel interativo abaixo com os locais cadastrados.</div>
+              <div id="mapa-markers-preview" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="panel" style="margin:0;padding:16px;">
+              <div class="panel-title" style="margin-bottom:12px;">📍 Regiões Cadastradas</div>
+              <div id="mapa-regioes-list" style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">📋 Lista de Regiões de Expansão</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Região</th><th>Cidade / Bairro</th><th>Status</th><th>Interessados</th><th>Responsável</th><th>Ações</th></tr></thead>
+            <tbody id="regioes-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTERESSADOS -->
+    <div class="page" id="page-interessados">
+      <div class="page-header">
+        <h1>👥 Gestão de Interessados (CRM)</h1>
+        <p>Cadastro, consulta, edição e acompanhamento de contatos comerciais</p>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">➕ Novo Interessado</span>
+          <button class="btn btn-ghost btn-sm" onclick="toggleForm('interessado-form-wrap')">Abrir/Fechar</button>
+        </div>
+        <div id="interessado-form-wrap" style="display:none;">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nome Completo *</label>
+              <input id="int-nome" placeholder="Nome do interessado">
+            </div>
+            <div class="form-group">
+              <label>Telefone / WhatsApp *</label>
+              <input id="int-fone" placeholder="(00) 00000-0000" onblur="checkDuplicatePhone(this.value)">
+            </div>
+            <div class="form-group">
+              <label>E-mail</label>
+              <input type="email" id="int-email" placeholder="email@exemplo.com">
+            </div>
+            <div class="form-group">
+              <label>Categoria</label>
+              <select id="int-categoria"><option value="">— Selecione —</option></select>
+            </div>
+            <div class="form-group">
+              <label>Plano Desejado</label>
+              <input id="int-plano" placeholder="Ex: Fibra 500 Mega">
+            </div>
+            <div class="form-group">
+              <label>Status Comercial</label>
+              <select id="int-status-comercial">
+                <option>Novo contato</option>
+                <option>Aguardando contato</option>
+                <option>Em negociação</option>
+                <option>Aguardando retorno</option>
+                <option>Interessado confirmado</option>
+                <option>Convertido em cliente</option>
+                <option>Sem interesse</option>
+                <option>Contato não localizado</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Status de Cobertura</label>
+              <select id="int-status-cobertura">
+                <option>Sem cobertura</option>
+                <option>Em análise técnica</option>
+                <option>Planejamento de expansão</option>
+                <option>Expansão em andamento</option>
+                <option>Cobertura disponível</option>
+                <option>Área inviável no momento</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Responsável</label>
+              <input id="int-responsavel" placeholder="Nome do atendente">
+            </div>
+            <div class="form-group">
+              <label>CEP</label>
+              <input id="int-cep" placeholder="00000-000">
+            </div>
+            <div class="form-group">
+              <label>Cidade</label>
+              <input id="int-cidade" placeholder="Nome da cidade">
+            </div>
+            <div class="form-group">
+              <label>Bairro</label>
+              <input id="int-bairro" placeholder="Nome do bairro">
+            </div>
+            <div class="form-group">
+              <label>Endereço (Rua e Nº)</label>
+              <input id="int-endereco" placeholder="Rua, Nº, Complemento">
+            </div>
+            <div class="form-group full">
+              <label>Link Google Maps / Ponto de Referência</label>
+              <input id="int-maps" placeholder="https://maps.google.com/...">
+            </div>
+            <div class="form-group full">
+              <label>Etiquetas (Selecione ou clique nas etiquetas cadastradas)</label>
+              <div id="int-etiquetas-selector" style="display:flex;gap:6px;flex-wrap:wrap;padding:8px;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);min-height:42px;"></div>
+            </div>
+            <div class="form-group full">
+              <label>Observações Comerciais</label>
+              <textarea id="int-obs" placeholder="Detalhes, melhor horário para contato, etc..."></textarea>
+            </div>
+          </div>
+          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="saveInteressado()">💾 Salvar Interessado</button>
+            <button class="btn btn-ghost" onclick="clearInteressadoForm()">✖ Limpar</button>
+          </div>
+          <input type="hidden" id="int-edit-id">
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 Lista de Interessados</span>
+          <div class="search-bar">
+            <input class="search-input" id="int-search" placeholder="🔍 Buscar por nome, telefone, bairro..." oninput="renderInteressados()">
+            <select class="search-input" style="flex:none;width:auto;" id="int-filter-cat" onchange="renderInteressados()"><option value="">Todas as Categorias</option></select>
+            <select class="search-input" style="flex:none;width:auto;" id="int-filter-status" onchange="renderInteressados()"><option value="">Todos os Status</option><option>Novo contato</option><option>Em negociação</option><option>Convertido em cliente</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Nome</th><th>WhatsApp</th><th>Cidade / Bairro</th><th>Categoria</th><th>Etiquetas</th><th>Status Comercial</th><th>Cobertura</th><th>Ações</th></tr></thead>
+            <tbody id="int-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORIAS -->
+    <div class="page" id="page-categorias">
+      <div class="page-header">
+        <h1>🏷️ Categorias Personalizadas</h1>
+        <p>Gerencie categorias para organizar cadastros e regiões</p>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">➕ Nova Categoria</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nome da Categoria *</label>
+            <input id="cat-nome" placeholder="Ex: Residencial, Comercial, Condomínio">
+          </div>
+          <div class="form-group">
+            <label>Cor Principal</label>
+            <input type="color" id="cat-cor" value="#00c2ff" style="height:42px;padding:4px;cursor:pointer;">
+          </div>
+          <div class="form-group">
+            <label>Ícone (Emoji)</label>
+            <input id="cat-icone" placeholder="Ex: 🏠" value="🏷️">
+          </div>
+          <div class="form-group full">
+            <label>Descrição</label>
+            <input id="cat-desc" placeholder="Descrição detalhada da categoria">
+          </div>
+          <div class="form-group full">
+            <label>Prévia Visual</label>
+            <div id="cat-preview-box" style="padding:12px;border-radius:var(--radius);background:var(--bg-panel);border:1px solid var(--border);display:inline-flex;align-items:center;gap:8px;font-weight:700;">
+              <span id="cat-prev-icon">🏷️</span>
+              <span id="cat-prev-name">Nome da Categoria</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="saveCategoria()">💾 Salvar Categoria</button>
+          <button class="btn btn-ghost" onclick="clearCategoriaForm()">✖ Limpar</button>
+        </div>
+        <input type="hidden" id="cat-edit-id">
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 Categorias Cadastradas</span>
+          <input class="search-input" style="max-width:260px;" id="cat-search" placeholder="🔍 Buscar categoria..." oninput="renderCategorias()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Prévia</th><th>Nome</th><th>Descrição</th><th>Vinculados</th><th>Situação</th><th>Ações</th></tr></thead>
+            <tbody id="cat-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ETIQUETAS -->
+    <div class="page" id="page-etiquetas">
+      <div class="page-header">
+        <h1>🔖 Etiquetas Coloridas</h1>
+        <p>Classifique interessados e regiões com marcadores visuais</p>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">➕ Nova Etiqueta</span></div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nome da Etiqueta *</label>
+            <input id="eti-nome" placeholder="Ex: Alta prioridade, Aguardando retorno">
+          </div>
+          <div class="form-group">
+            <label>Cor de Fundo</label>
+            <input type="color" id="eti-cor-bg" value="#06b6d4" style="height:42px;padding:4px;cursor:pointer;">
+          </div>
+          <div class="form-group">
+            <label>Cor do Texto</label>
+            <input type="color" id="eti-cor-txt" value="#ffffff" style="height:42px;padding:4px;cursor:pointer;">
+          </div>
+          <div class="form-group full">
+            <label>Descrição</label>
+            <input id="eti-desc" placeholder="Finalidade desta etiqueta">
+          </div>
+          <div class="form-group full">
+            <label>Prévia Visual</label>
+            <div>
+              <span id="eti-preview-pill" style="padding:4px 12px;border-radius:12px;font-size:12px;font-weight:700;display:inline-block;background:#06b6d4;color:#ffffff;">Etiqueta Exemplo</span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button class="btn btn-primary" onclick="saveEtiqueta()">💾 Salvar Etiqueta</button>
+          <button class="btn btn-ghost" onclick="clearEtiquetaForm()">✖ Limpar</button>
+        </div>
+        <input type="hidden" id="eti-edit-id">
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title">📋 Etiquetas Cadastradas</span>
+          <input class="search-input" style="max-width:260px;" id="eti-search" placeholder="🔍 Buscar etiqueta..." oninput="renderEtiquetas()">
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Prévia</th><th>Nome</th><th>Descrição</th><th>Vinculados</th><th>Ações</th></tr></thead>
+            <tbody id="eti-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+
 
     <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
@@ -1428,7 +1699,406 @@ function downloadFile(content, name, type) {
 function initApp() {
   document.getElementById('ont-data').value = new Date().toISOString().split('T')[0];
   populateModeloSelect();
+  initCRMData();
   renderDashboard();
+}
+
+// ================= CRM / EXPANSÃO DATA & LOGIC =================
+let CRMDB = JSON.parse(localStorage.getItem('ont_crm_db') || 'null') || {
+  interessados: [
+    { id: '1', nome: 'Carlos Silva', fone: '(98) 98888-1111', email: 'carlos@email.com', categoria: 'Residencial', plano: 'Fibra 500 Mega', statusComercial: 'Em negociação', statusCobertura: 'Sem cobertura', responsavel: 'Ana', cep: '65000-000', cidade: 'São Luís', bairro: 'Araçagy', endereco: 'Rua Principal, 100', maps: '', etiquetas: ['Alta prioridade', 'Novo contato'], obs: 'Quer instalar assim que liberar' }
+  ],
+  regioes: [
+    { id: '1', nome: 'Araçagy', cidade: 'São Luís', estado: 'MA', bairro: 'Araçagy', status: 'Em análise técnica', responsavel: 'Carlos', obs: 'Alta demanda residencial' },
+    { id: '2', nome: 'Maiobão', cidade: 'Paço do Lumiar', estado: 'MA', bairro: 'Maiobão', status: 'Planejamento de expansão', responsavel: 'Marcos', obs: 'Estudo de viabilidade em andamento' }
+  ],
+  categorias: [
+    { id: '1', nome: 'Residencial', cor: '#00c2ff', icone: '🏠', desc: 'Clientes residenciais' },
+    { id: '2', nome: 'Comercial', cor: '#a855f7', icone: '🏢', desc: 'Empresas e comércios' },
+    { id: '3', nome: 'Condomínio', cor: '#00e5a0', icone: '🏘️', desc: 'Condomínios fechados' }
+  ],
+  etiquetas: [
+    { id: '1', nome: 'Alta prioridade', corBg: '#ff3b5c', corTxt: '#ffffff', desc: 'Clientes muito interessados' },
+    { id: '2', nome: 'Novo contato', corBg: '#00c2ff', corTxt: '#000000', desc: 'Cadastrado recentemente' },
+    { id: '3', nome: 'Aguardando retorno', corBg: '#ffb800', corTxt: '#000000', desc: 'Retornar em breve' }
+  ]
+};
+
+function saveCRM() {
+  localStorage.setItem('ont_crm_db', JSON.stringify(CRMDB));
+}
+
+function initCRMData() {
+  populateSelects();
+  renderInteressados();
+  renderCategorias();
+  renderEtiquetas();
+  renderRegioes();
+  renderMapa();
+}
+
+function populateSelects() {
+  const catSel = document.getElementById('int-categoria');
+  const filterCat = document.getElementById('int-filter-cat');
+  if (catSel) {
+    catSel.innerHTML = '<option value="">— Selecione —</option>' + CRMDB.categorias.map(c => `<option value="${c.nome}">${c.icone} ${c.nome}</option>`).join('');
+  }
+  if (filterCat) {
+    filterCat.innerHTML = '<option value="">Todas as Categorias</option>' + CRMDB.categorias.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+  }
+  const etiSel = document.getElementById('int-etiquetas-selector');
+  if (etiSel) {
+    etiSel.innerHTML = CRMDB.etiquetas.map(e => `
+      <label style="display:inline-flex;align-items:center;gap:4px;background:${e.corBg};color:${e.corTxt};padding:3px 8px;border-radius:12px;font-size:11px;cursor:pointer;">
+        <input type="checkbox" value="${e.nome}" class="int-eti-checkbox"> ${e.nome}
+      </label>
+    `).join('');
+  }
+}
+
+function checkDuplicatePhone(fone) {
+  if (!fone) return;
+  const found = CRMDB.interessados.find(i => i.fone.trim() === fone.trim());
+  if (found) {
+    alert(`⚠️ Atenção: Já existe um interessado cadastrado com este telefone/WhatsApp (${found.nome} - Bairro: ${found.bairro}).`);
+  }
+}
+
+function saveInteressado() {
+  const id = document.getElementById('int-edit-id').value;
+  const nome = document.getElementById('int-nome').value;
+  const fone = document.getElementById('int-fone').value;
+  if (!nome || !fone) {
+    alert('Preencha pelo menos o Nome e o Telefone.');
+    return;
+  }
+  const email = document.getElementById('int-email').value;
+  const categoria = document.getElementById('int-categoria').value;
+  const plano = document.getElementById('int-plano').value;
+  const statusComercial = document.getElementById('int-status-comercial').value;
+  const statusCobertura = document.getElementById('int-status-cobertura').value;
+  const responsavel = document.getElementById('int-responsavel').value;
+  const cep = document.getElementById('int-cep').value;
+  const cidade = document.getElementById('int-cidade').value;
+  const bairro = document.getElementById('int-bairro').value;
+  const endereco = document.getElementById('int-endereco').value;
+  const maps = document.getElementById('int-maps').value;
+  const obs = document.getElementById('int-obs').value;
+
+  const checkboxes = document.querySelectorAll('.int-eti-checkbox:checked');
+  const etiquetas = Array.from(checkboxes).map(cb => cb.value);
+
+  if (id) {
+    const item = CRMDB.interessados.find(x => x.id === id);
+    if (item) {
+      Object.assign(item, { nome, fone, email, categoria, plano, statusComercial, statusCobertura, responsavel, cep, cidade, bairro, endereco, maps, etiquetas, obs });
+    }
+  } else {
+    const newItem = {
+      id: Date.now().toString(),
+      nome, fone, email, categoria, plano, statusComercial, statusCobertura, responsavel, cep, cidade, bairro, endereco, maps, etiquetas, obs,
+      data: new Date().toISOString().split('T')[0]
+    };
+    CRMDB.interessados.push(newItem);
+  }
+  saveCRM();
+  clearInteressadoForm();
+  renderInteressados();
+  renderDashboard();
+  alert('Interessado salvo com sucesso!');
+}
+
+function clearInteressadoForm() {
+  ['int-edit-id', 'int-nome', 'int-fone', 'int-email', 'int-plano', 'int-responsavel', 'int-cep', 'int-cidade', 'int-bairro', 'int-endereco', 'int-maps', 'int-obs'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('int-categoria').value = '';
+  document.querySelectorAll('.int-eti-checkbox').forEach(cb => cb.checked = false);
+}
+
+function renderInteressados() {
+  const search = (document.getElementById('int-search')?.value || '').toLowerCase();
+  const catFilter = document.getElementById('int-filter-cat')?.value || '';
+  const statFilter = document.getElementById('int-filter-status')?.value || '';
+  const tbody = document.getElementById('int-tbody');
+  if (!tbody) return;
+
+  const filtered = CRMDB.interessados.filter(i => {
+    const matchText = (i.nome + i.fone + i.bairro + i.cidade).toLowerCase().includes(search);
+    const matchCat = !catFilter || i.categoria === catFilter;
+    const matchStat = !statFilter || i.statusComercial === statFilter;
+    return matchText && matchCat && matchStat;
+  });
+
+  tbody.innerHTML = filtered.map(i => {
+    const etisHtml = (i.etiquetas || []).map(eName => {
+      const eObj = CRMDB.etiquetas.find(x => x.nome === eName);
+      const bg = eObj ? eObj.corBg : '#06b6d4';
+      const tx = eObj ? eObj.corTxt : '#fff';
+      return `<span style="background:${bg};color:${tx};padding:2px 6px;border-radius:8px;font-size:10px;margin-right:2px;">${eName}</span>`;
+    }).join('');
+
+    return `<tr>
+      <td><strong>${i.nome}</strong></td>
+      <td>${i.fone}</td>
+      <td>${i.cidade || '—'} / ${i.bairro || '—'}</td>
+      <td>${i.categoria || '—'}</td>
+      <td>${etisHtml}</td>
+      <td><span style="color:var(--accent);">${i.statusComercial}</span></td>
+      <td>${i.statusCobertura}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="editInteressado('${i.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="deleteInteressado('${i.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function editInteressado(id) {
+  const i = CRMDB.interessados.find(x => x.id === id);
+  if (!i) return;
+  document.getElementById('int-edit-id').value = i.id;
+  document.getElementById('int-nome').value = i.nome || '';
+  document.getElementById('int-fone').value = i.fone || '';
+  document.getElementById('int-email').value = i.email || '';
+  document.getElementById('int-categoria').value = i.categoria || '';
+  document.getElementById('int-plano').value = i.plano || '';
+  document.getElementById('int-status-comercial').value = i.statusComercial || 'Novo contato';
+  document.getElementById('int-status-cobertura').value = i.statusCobertura || 'Sem cobertura';
+  document.getElementById('int-responsavel').value = i.responsavel || '';
+  document.getElementById('int-cep').value = i.cep || '';
+  document.getElementById('int-cidade').value = i.cidade || '';
+  document.getElementById('int-bairro').value = i.bairro || '';
+  document.getElementById('int-endereco').value = i.endereco || '';
+  document.getElementById('int-maps').value = i.maps || '';
+  document.getElementById('int-obs').value = i.obs || '';
+  document.querySelectorAll('.int-eti-checkbox').forEach(cb => {
+    cb.checked = (i.etiquetas || []).includes(cb.value);
+  });
+  toggleForm('interessado-form-wrap', true);
+}
+
+function deleteInteressado(id) {
+  if (confirm('Deseja realmente excluir este interessado?')) {
+    CRMDB.interessados = CRMDB.interessados.filter(x => x.id !== id);
+    saveCRM();
+    renderInteressados();
+    renderDashboard();
+  }
+}
+
+// CATEGORIAS MANAGEMENT
+function saveCategoria() {
+  const id = document.getElementById('cat-edit-id').value;
+  const nome = document.getElementById('cat-nome').value;
+  const cor = document.getElementById('cat-cor').value;
+  const icone = document.getElementById('cat-icone').value;
+  const desc = document.getElementById('cat-desc').value;
+  if (!nome) { alert('Informe o nome da categoria.'); return; }
+
+  if (id) {
+    const cat = CRMDB.categorias.find(x => x.id === id);
+    if (cat) Object.assign(cat, { nome, cor, icone, desc });
+  } else {
+    CRMDB.categorias.push({ id: Date.now().toString(), nome, cor, icone, desc });
+  }
+  saveCRM();
+  clearCategoriaForm();
+  renderCategorias();
+  populateSelects();
+  alert('Categoria salva com sucesso!');
+}
+
+function clearCategoriaForm() {
+  ['cat-edit-id', 'cat-nome', 'cat-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cat-cor').value = '#00c2ff';
+  document.getElementById('cat-icone').value = '🏷️';
+}
+
+function renderCategorias() {
+  const tbody = document.getElementById('cat-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = CRMDB.categorias.map(c => {
+    const count = CRMDB.interessados.filter(i => i.categoria === c.nome).length;
+    return `<tr>
+      <td><span style="background:${c.cor}22;color:${c.cor};padding:4px 8px;border-radius:6px;font-weight:700;">${c.icone} ${c.nome}</span></td>
+      <td>${c.nome}</td>
+      <td>${c.desc || '—'}</td>
+      <td>${count} interessados</td>
+      <td>Ativa</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="editCategoria('${c.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="deleteCategoria('${c.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function editCategoria(id) {
+  const c = CRMDB.categorias.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('cat-edit-id').value = c.id;
+  document.getElementById('cat-nome').value = c.nome;
+  document.getElementById('cat-cor').value = c.cor || '#00c2ff';
+  document.getElementById('cat-icone').value = c.icone || '🏷️';
+  document.getElementById('cat-desc').value = c.desc || '';
+}
+
+function deleteCategoria(id) {
+  const cat = CRMDB.categorias.find(x => x.id === id);
+  if (!cat) return;
+  const count = CRMDB.interessados.filter(i => i.categoria === cat.nome).length;
+  if (count > 0) {
+    if (!confirm(`Existem ${count} interessados vinculados a esta categoria. Deseja realmente excluir e desvincular?`)) return;
+  } else {
+    if (!confirm('Deseja excluir esta categoria?')) return;
+  }
+  CRMDB.categorias = CRMDB.categorias.filter(x => x.id !== id);
+  saveCRM();
+  renderCategorias();
+  populateSelects();
+}
+
+// ETIQUETAS MANAGEMENT
+function saveEtiqueta() {
+  const id = document.getElementById('eti-edit-id').value;
+  const nome = document.getElementById('eti-nome').value;
+  const corBg = document.getElementById('eti-cor-bg').value;
+  const corTxt = document.getElementById('eti-cor-txt').value;
+  const desc = document.getElementById('eti-desc').value;
+  if (!nome) { alert('Informe o nome da etiqueta.'); return; }
+
+  if (id) {
+    const eti = CRMDB.etiquetas.find(x => x.id === id);
+    if (eti) Object.assign(eti, { nome, corBg, corTxt, desc });
+  } else {
+    CRMDB.etiquetas.push({ id: Date.now().toString(), nome, corBg, corTxt, desc });
+  }
+  saveCRM();
+  clearEtiquetaForm();
+  renderEtiquetas();
+  populateSelects();
+  alert('Etiqueta salva com sucesso!');
+}
+
+function clearEtiquetaForm() {
+  ['eti-edit-id', 'eti-nome', 'eti-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('eti-cor-bg').value = '#06b6d4';
+  document.getElementById('eti-cor-txt').value = '#ffffff';
+}
+
+function renderEtiquetas() {
+  const tbody = document.getElementById('eti-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = CRMDB.etiquetas.map(e => {
+    const count = CRMDB.interessados.filter(i => (i.etiquetas || []).includes(e.nome)).length;
+    return `<tr>
+      <td><span style="background:${e.corBg};color:${e.corTxt};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;">${e.nome}</span></td>
+      <td>${e.nome}</td>
+      <td>${e.desc || '—'}</td>
+      <td>${count} vinculos</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="editEtiqueta('${e.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="deleteEtiqueta('${e.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function editEtiqueta(id) {
+  const e = CRMDB.etiquetas.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('eti-edit-id').value = e.id;
+  document.getElementById('eti-nome').value = e.nome;
+  document.getElementById('eti-cor-bg').value = e.corBg || '#06b6d4';
+  document.getElementById('eti-cor-txt').value = e.corTxt || '#ffffff';
+  document.getElementById('eti-desc').value = e.desc || '';
+}
+
+function deleteEtiqueta(id) {
+  const eti = CRMDB.etiquetas.find(x => x.id === id);
+  if (!eti) return;
+  if (!confirm('Deseja excluir esta etiqueta? Os vinculos serao removidos dos registros.')) return;
+  CRMDB.etiquetas = CRMDB.etiquetas.filter(x => x.id !== id);
+  saveCRM();
+  renderEtiquetas();
+  populateSelects();
+}
+
+// REGIOES E MAPA
+function renderRegioes() {
+  const tbody = document.getElementById('regioes-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = CRMDB.regioes.map(r => {
+    const count = CRMDB.interessados.filter(i => i.bairro && i.bairro.toLowerCase() === r.bairro.toLowerCase()).length;
+    return `<tr>
+      <td><strong>${r.nome}</strong></td>
+      <td>${r.cidade} / ${r.bairro}</td>
+      <td><span style="color:var(--accent);">${r.status}</span></td>
+      <td>${count} interessados</td>
+      <td>${r.responsavel || '—'}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="deleteRegiao('${r.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function openRegiaoModal() {
+  const nome = prompt('Nome da Região de Expansão:');
+  if (!nome) return;
+  const bairro = prompt('Bairro de referência:') || nome;
+  const cidade = prompt('Cidade:', 'São Luís') || 'São Luís';
+  CRMDB.regioes.push({
+    id: Date.now().toString(),
+    nome,
+    cidade,
+    estado: 'MA',
+    bairro,
+    status: 'Em análise técnica',
+    responsavel: 'Equipe',
+    obs: 'Cadastrada pelo painel'
+  });
+  saveCRM();
+  renderRegioes();
+  renderMapa();
+}
+
+function deleteRegiao(id) {
+  if (confirm('Excluir esta região?')) {
+    CRMDB.regioes = CRMDB.regioes.filter(x => x.id !== id);
+    saveCRM();
+    renderRegioes();
+    renderMapa();
+  }
+}
+
+function renderMapa() {
+  const list = document.getElementById('mapa-regioes-list');
+  const preview = document.getElementById('mapa-markers-preview');
+  if (!list || !preview) return;
+
+  list.innerHTML = CRMDB.regioes.map(r => {
+    const count = CRMDB.interessados.filter(i => i.bairro && i.bairro.toLowerCase() === r.bairro.toLowerCase()).length;
+    return `<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:6px;padding:10px;">
+      <div style="font-weight:700;color:var(--text-bright);font-size:13px;">${r.nome} (${r.bairro})</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-top:2px;">Status: ${r.status}</div>
+      <div style="font-size:11px;color:var(--accent);margin-top:2px;">Demandas: ${count} interessados</div>
+    </div>`;
+  }).join('');
+
+  preview.innerHTML = CRMDB.regioes.map(r => {
+    return `<div style="background:var(--bg-card);border:1px solid var(--border-bright);padding:8px 12px;border-radius:8px;font-size:12px;font-family:var(--mono);">
+      📍 ${r.name || r.nome} <span style="color:var(--accent);">(${r.status})</span>
+    </div>`;
+  }).join('');
+}
+
+// Toggle form helper
+function toggleForm(id, forceOpen) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (forceOpen) {
+    el.style.display = 'block';
+  } else {
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
 }
 
 // Init nav items correctly
