@@ -53,12 +53,11 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 <body>
   <div id="app"></div>
   <script>
-    // Storage base
-    const DB_KEY = 'praias_grill_db_v1';
+    const DB_KEY = 'praias_grill_db_v2';
     const defaultData = {
       config: {
         nome: "Praia's Grill",
-        endereco: "Rod. MA-203 (Estrada do Araçagy), nº 3, São José de Ribamar - MA",
+        endereco: "Rod. MA-203 (Estrada do Araçagy), nº 3, São José de Ribamar - MA, CEP 65110-000",
         telefone: "(98) 99168-5098",
         instagram: "@praiasgrill",
         aberto: true,
@@ -146,7 +145,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
       localStorage.setItem(DB_KEY, JSON.stringify(data));
     }
 
-    // Router
     function router() {
       const path = window.location.pathname;
       const app = document.getElementById('app');
@@ -159,7 +157,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
       }
     }
 
-    // CLIENT APP
     let currentCliente = JSON.parse(localStorage.getItem('praias_cliente') || 'null');
     let carrinho = [];
     let modalProduto = null;
@@ -255,7 +252,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
       const db = getDB();
       const p = db.produtos.find(x => x.id === id);
       if (!p) return;
-      modalProduto = { produto: p, qtd: 1, acompanhamentos: [] };
+      modalProduto = { produto: p, qtd: 1 };
+      optsSelecionadas = [];
       
       const modalDiv = document.getElementById('modal-container');
       modalDiv.innerHTML = `
@@ -297,7 +295,6 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
       if (idx > -1) optsSelecionadas.splice(idx, 1);
       else optsSelecionadas.push({ nome, preco });
       
-      const db = getDB();
       if (modalProduto) {
         let total = modalProduto.produto.preco;
         optsSelecionadas.forEach(o => total += o.preco);
@@ -429,14 +426,15 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
       const db = getDB();
       let subtotal = 0;
       carrinho.forEach(i => subtotal += i.precoUnitario * i.qtd);
-      const taxa = document.querySelector('input[name="mod_ped"]:checked').value === 'retirada' ? 0 : db.config.taxaPadrao;
+      const isRetirada = document.querySelector('input[name="mod_ped"]:checked').value === 'retirada';
+      const taxa = isRetirada ? 0 : db.config.taxaPadrao;
       
       const novoPedido = {
         id: 'PED-' + Math.floor(1000 + Math.random() * 9000),
         cliente: currentCliente.nome,
         fone: currentCliente.fone,
-        modalidade: document.querySelector('input[name="mod_ped"]:checked').value,
-        endereco: document.getElementById('end-rua') ? document.getElementById('end-rua').value : 'Retirada no local',
+        modalidade: isRetirada ? 'retirada' : 'delivery',
+        endereco: isRetirada ? 'Retirada: Rod. MA-203, nº 3, Araçagy' : (document.getElementById('end-rua').value || 'Não informado'),
         itens: [...carrinho],
         total: subtotal + taxa,
         status: 'Novo pedido',
@@ -451,11 +449,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
       renderCliente(document.getElementById('app'));
     }
 
-    // GESTAO APP (/gestao)
     function renderGestao(container) {
       const db = getDB();
       container.innerHTML = `
-        <div class="container" style="padding-top:40px;">
+        <div class="container" style="padding-top:40px;padding-bottom:60px;">
           <div style="display:flex;justify-content:between;align-items:center;margin-bottom:30px;">
             <div>
               <h1 style="color:var(--accent);">Painel de Gestão — Praia's Grill</h1>
@@ -520,11 +517,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
       }
     }
 
-    // MASTER APP (/master)
     function renderMaster(container) {
       const db = getDB();
       container.innerHTML = `
-        <div class="container" style="padding-top:40px;">
+        <div class="container" style="padding-top:40px;padding-bottom:60px;">
           <div style="display:flex;justify-content:between;align-items:center;margin-bottom:30px;">
             <div>
               <h1 style="color:var(--accent);">Painel Master — Estratégia & Estoque</h1>
