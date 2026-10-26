@@ -204,6 +204,10 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
           renderCliente(container);
         };
         return;
+      }setItem('praias_cliente', JSON.stringify(currentCliente));
+          renderCliente(container);
+        };
+        return;
       }
 
       container.innerHTML = `
